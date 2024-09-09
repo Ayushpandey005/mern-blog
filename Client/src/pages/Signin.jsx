@@ -3,11 +3,14 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import axios from "axios";
+import { signInStart, signInSuccess, signInFailure } from "../redux/user/userSlice";
+import { useDispatch, useSelector } from "react-redux";
 
 export default function SignIn() {
   const [formData, setFormData] = useState({});
-  const [errorMessage, setErrorMessage] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const {loading, error : errorMessage} = useSelector(state => state.user)
+
+  const dispatch = useDispatch()
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -16,16 +19,15 @@ export default function SignIn() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+  
     // Check if both email and password are provided
     if (!formData.email || !formData.password) {
-      return setErrorMessage("Please fill out both email and password!");
+      return dispatch(signInFailure("Please fill out both email and password!"));
     }
-
+  
     try {
-      setLoading(true);
-      setErrorMessage(null);
-
+      dispatch(signInStart());
+  
       // Make the API request to sign in
       const res = await axios.post("/api/auth/signin", formData, {
         headers: {
@@ -33,41 +35,26 @@ export default function SignIn() {
         },
         withCredentials: true, // Allows cookies to be sent/received with request
       });
-
+  
       // Check if the sign-in was successful
       if (res && res.status === 200) {
-        toast.success("Signed in successfully");
-        setLoading(false);
+        dispatch(signInSuccess(res.data)); // Dispatch success with user data
         navigate("/"); // Navigate to the home page or dashboard on success
       } else {
-        // Handle unexpected non-successful responses
-        setErrorMessage("Something went wrong. Please try again.");
-        setLoading(false);
+        dispatch(signInFailure("Sign-in failed. Please try again."));
       }
     } catch (error) {
-      setLoading(false);
-
       // Handle error responses from the backend
       if (
         error.response &&
         error.response.data &&
         error.response.data.message
       ) {
-        if (error.response.status === 400) {
-          // Handle "Incorrect email or password" or "All fields are required" errors
-          setErrorMessage(error.response.data.message);
-        } else if (error.response.status === 404) {
-          // Handle "User not found" errors
-          setErrorMessage("User not found!");
-        } else {
-          // Handle other errors
-          setErrorMessage("Something went wrong. Please try again.");
-        }
+        dispatch(signInFailure(error.response.data.message)); // Dispatch error message from response
       } else {
-        // Catch-all error for unexpected issues
-        setErrorMessage("Something went wrong. Please try again.");
+        dispatch(signInFailure("Something went wrong. Please try again.")); // Generic error
       }
-
+  
       // Optionally, log the error for debugging purposes
       console.log(error);
     }
