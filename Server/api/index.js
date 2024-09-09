@@ -1,5 +1,6 @@
 import express from 'express'
 import mongoose from 'mongoose'
+import cors from 'cors'
 import dotenv from 'dotenv'
 import userRoutes from '../api/routes/user.routes.js'
 import authRoutes from '../api/routes/auth.routes.js'
@@ -17,6 +18,8 @@ mongoose.connect(process.env.MONGO_URL)
 const app = express()
 
 app.use(express.json())
+
+app.use(cors())
 
 app.listen(3000, () => {
     console.log(`Server is running on port 3000!`)
